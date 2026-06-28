@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getSession } from '@/lib/auth'
+import { requireEmpresaSession } from '@/lib/auth'
 
 export async function GET() {
-  const session = await getSession()
+  const session = await requireEmpresaSession()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const empresa = await prisma.empresa.findUnique({
@@ -18,7 +18,7 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const session = await getSession()
+  const session = await requireEmpresaSession()
   if (!session) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
   const { colorPrimario, colorSecundario } = await request.json()
