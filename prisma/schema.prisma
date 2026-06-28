@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Empresa {
+  id            String   @id @default(cuid())
+  nombre        String
+  rfc           String   @unique
+  razonSocial   String
+  regimenFiscal String
+  codigoPostal  String
+  calle         String?
+  colonia       String?
+  ciudad        String?
+  estado        String?
+  logo            String?
+  colorPrimario   String?  @default("#2563EB")
+  colorSecundario String?  @default("#64748b")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  usuarios     Usuario[]
+  clientes     Cliente[]
+  productos    Producto[]
+  cotizaciones Cotizacion[]
+  facturas     Factura[]
+}
+
+model Usuario {
+  id        String   @id @default(cuid())
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       Rol      @default(ADMIN)
+  activo    Boolean  @default(true)
+  empresaId String?
+  empresa   Empresa? @relation(fields: [empresaId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Rol {
+  SUPERADMIN
+  ADMIN
+  USUARIO
+}
+
+model Cliente {
+  id            String   @id @default(cuid())
+  nombre        String
+  rfc           String
+  razonSocial   String
+  email         String?
+  telefono      String?
+  calle         String?
+  colonia       String?
+  ciudad        String?
+  estado        String?
+  codigoPostal  String?
+  regimenFiscal String?
+  activo        Boolean  @default(true)
+  empresaId     String
+  empresa       Empresa  @relation(fields: [empresaId], references: [id])
+  cotizaciones  Cotizacion[]
+  facturas      Factura[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Producto {
+  id           String   @id @default(cuid())
+  nombre       String
+  descripcion  String?
+  precio       Decimal  @db.Decimal(10, 2)
+  tasaIva      Decimal  @default(0.16) @db.Decimal(4, 2)
+  claveSAT     String?
+  claveUnidad  String?  @default("H87")
+  unidad       String?  @default("Pieza")
+  activo       Boolean  @default(true)
+  empresaId    String
+  empresa      Empresa  @relation(fields: [empresaId], references: [id])
+  cotizacionItems CotizacionItem[]
+  facturaItems    FacturaItem[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Cotizacion {
+  id          String             @id @default(cuid())
+  folio       String
+  clienteId   String
+  cliente     Cliente            @relation(fields: [clienteId], references: [id])
+  empresaId   String
+  empresa     Empresa            @relation(fields: [empresaId], references: [id])
+  subtotal    Decimal            @db.Decimal(12, 2)
+  descuento   Decimal            @default(0) @db.Decimal(12, 2)
+  iva         Decimal            @db.Decimal(12, 2)
+  total       Decimal            @db.Decimal(12, 2)
+  estatus     EstatusCotizacion  @default(PENDIENTE)
+  notas       String?
+  validezDias Int                @default(30)
+  items       CotizacionItem[]
+  factura     Factura?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+}
+
+enum EstatusCotizacion {
+  PENDIENTE
+  APROBADA
+  RECHAZADA
+  FACTURADA
+}
+
+model CotizacionItem {
+  id             String     @id @default(cuid())
+  cotizacionId   String
+  cotizacion     Cotizacion @relation(fields: [cotizacionId], references: [id], onDelete: Cascade)
+  productoId     String
+  producto       Producto   @relation(fields: [productoId], references: [id])
+  descripcion    String
+  cantidad       Decimal    @db.Decimal(10, 2)
+  precioUnitario Decimal    @db.Decimal(10, 2)
+  descuento      Decimal    @default(0) @db.Decimal(10, 2)
+  subtotal       Decimal    @db.Decimal(12, 2)
+  iva            Decimal    @db.Decimal(12, 2)
+  total          Decimal    @db.Decimal(12, 2)
+  unidad         String?    @default("Pieza")
+  claveUnidad    String?    @default("H87")
+}
+
+model Factura {
+  id             String         @id @default(cuid())
+  folio          String
+  serie          String         @default("A")
+  clienteId      String
+  cliente        Cliente        @relation(fields: [clienteId], references: [id])
+  empresaId      String
+  empresa        Empresa        @relation(fields: [empresaId], references: [id])
+  cotizacionId   String?        @unique
+  cotizacion     Cotizacion?    @relation(fields: [cotizacionId], references: [id])
+  subtotal       Decimal        @db.Decimal(12, 2)
+  descuento      Decimal        @default(0) @db.Decimal(12, 2)
+  iva            Decimal        @db.Decimal(12, 2)
+  total          Decimal        @db.Decimal(12, 2)
+  estatus        EstatusFactura @default(PENDIENTE)
+  uuid           String?
+  xmlUrl         String?
+  pdfUrl         String?
+  formaPago      String?        @default("99")
+  metodoPago     String?        @default("PPD")
+  usoCFDI        String?        @default("G01")
+  moneda         String?        @default("MXN")
+  tipoCambio     Decimal?       @default(1) @db.Decimal(10, 4)
+  items          FacturaItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+enum EstatusFactura {
+  PENDIENTE
+  TIMBRADA
+  CANCELADA
+}
+
+model FacturaItem {
+  id             String   @id @default(cuid())
+  facturaId      String
+  factura        Factura  @relation(fields: [facturaId], references: [id], onDelete: Cascade)
+  productoId     String
+  producto       Producto @relation(fields: [productoId], references: [id])
+  descripcion    String
+  cantidad       Decimal  @db.Decimal(10, 2)
+  precioUnitario Decimal  @db.Decimal(10, 2)
+  descuento      Decimal  @default(0) @db.Decimal(10, 2)
+  subtotal       Decimal  @db.Decimal(12, 2)
+  iva            Decimal  @db.Decimal(12, 2)
+  total          Decimal  @db.Decimal(12, 2)
+  claveSAT       String?
+  claveUnidad    String?  @default("H87")
+  unidad         String?  @default("Pieza")
+}
