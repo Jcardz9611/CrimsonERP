@@ -55,7 +55,14 @@ const NAV_ITEMS = [
   },
 ]
 
-export default function Sidebar({ empresa, usuario }: { empresa: string; usuario: string }) {
+interface SidebarProps {
+  empresa: string
+  usuario: string
+  mobileOpen?: boolean
+  onClose?: () => void
+}
+
+export default function Sidebar({ empresa, usuario, mobileOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [showPanel, setShowPanel] = useState(false)
@@ -66,8 +73,20 @@ export default function Sidebar({ empresa, usuario }: { empresa: string; usuario
     router.refresh()
   }
 
+  function handleNavClick() {
+    onClose?.()
+  }
+
   return (
-    <aside className="fixed inset-y-0 left-0 w-64 flex flex-col" style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1a2744 100%)' }}>
+    <aside
+      className={`
+        fixed inset-y-0 left-0 w-64 flex flex-col z-40
+        transition-transform duration-300 ease-in-out
+        md:translate-x-0
+        ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}
+      style={{ background: 'linear-gradient(180deg, #0f172a 0%, #1a2744 100%)' }}
+    >
       {/* Company header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-white/10">
         <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--secondary)' }}>
@@ -89,6 +108,7 @@ export default function Sidebar({ empresa, usuario }: { empresa: string; usuario
             <Link
               key={item.href}
               href={item.href}
+              onClick={handleNavClick}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive
                   ? 'text-white'
@@ -107,7 +127,6 @@ export default function Sidebar({ empresa, usuario }: { empresa: string; usuario
       <div className="relative p-3 border-t border-white/10 space-y-1">
         {showPanel && <ThemePanel onClose={() => setShowPanel(false)} />}
 
-        {/* Appearance button */}
         <button
           type="button"
           onClick={() => setShowPanel((v) => !v)}
@@ -119,7 +138,6 @@ export default function Sidebar({ empresa, usuario }: { empresa: string; usuario
           Apariencia
         </button>
 
-        {/* Logout button */}
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-white/10 hover:text-white transition-colors"
